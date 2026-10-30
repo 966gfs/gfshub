@@ -18,7 +18,7 @@
         body { font-family: 'Inter', sans-serif; }
         
         @media print {
-            header, .no-print, #viewCalc, #defectModal, #lightboxModal, #toast { 
+            header, .no-print, #viewCalc, #defectModal, #lightboxModal, #settingsModal, #dbConfigModal, #toast { 
                 display: none !important; 
             }
             
@@ -83,6 +83,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
+    <!-- Header Navigation -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm no-print">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
@@ -109,6 +110,14 @@
                     <span id="dbStatusDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
                     <span id="dbStatusText">DB 연결 확인 중...</span>
                 </div>
+                
+                <!-- 설정 버튼 (품목명 / 불량원인 관리) -->
+                <button onclick="openSettingsModal()" class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm" title="품목명 및 불량 원인 목록 설정">
+                    <i class="fa-solid fa-sliders text-blue-600"></i>
+                    <span class="hidden md:inline">기준 정보 설정</span>
+                </button>
+
+                <!-- Firebase 설정 버튼 -->
                 <button onclick="openDbConfigModal()" class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm" title="Firebase DB 설정">
                     <i class="fa-solid fa-cloud text-amber-500"></i>
                     <span class="hidden md:inline">Firebase 설정</span>
@@ -119,11 +128,12 @@
 
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
+        <!-- Print Header -->
         <div class="print-only-header">
             <div class="flex justify-between items-end">
                 <div>
                     <h1 class="text-2xl font-bold text-black">원자재 및 생산 불량 관리 대장 보고서</h1>
-                    <p class="text-xs text-gray-600 mt-1">유도등 제조 종합 관리 시스템 품질 내역</p>
+                    <p class="text-xs text-gray-600 mt-1">유도등 제조 종합 관리 시스템 품질 내역 <span id="printFilterNotice" class="font-bold text-black"></span></p>
                 </div>
                 <div class="text-right text-xs text-gray-600">
                     <p>인쇄일시: <span id="printDateStr"></span></p>
@@ -134,10 +144,13 @@
 
         <!-- TAB 1: Defect Manager -->
         <div id="viewDefect" class="space-y-6">
+            <!-- 요약 카드 (선택된 년/월 필터 반영) -->
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">총 기록 건수</p>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                            총 기록 건수 <span id="cardPeriodLabel1" class="text-blue-500 font-normal"></span>
+                        </p>
                         <h3 id="statTotal" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
                     </div>
                     <div class="bg-blue-50 text-blue-600 p-3 rounded-xl no-print">
@@ -146,7 +159,9 @@
                 </div>
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">총 생산 수량</p>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                            총 생산 수량 <span id="cardPeriodLabel2" class="text-blue-500 font-normal"></span>
+                        </p>
                         <h3 id="statProdQty" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
                     </div>
                     <div class="bg-slate-100 text-slate-600 p-3 rounded-xl no-print">
@@ -155,7 +170,9 @@
                 </div>
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">총 불량 수량</p>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                            총 불량 수량 <span id="cardPeriodLabel3" class="text-blue-500 font-normal"></span>
+                        </p>
                         <h3 id="statDefectQty" class="text-2xl font-bold text-red-600 mt-1">0</h3>
                     </div>
                     <div class="bg-red-50 text-red-600 p-3 rounded-xl no-print">
@@ -164,7 +181,9 @@
                 </div>
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">평균 불량률</p>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                            평균 불량률 <span id="cardPeriodLabel4" class="text-blue-500 font-normal"></span>
+                        </p>
                         <h3 id="statAvgRate" class="text-2xl font-bold text-amber-600 mt-1">0%</h3>
                     </div>
                     <div class="bg-amber-50 text-amber-600 p-3 rounded-xl no-print">
@@ -173,16 +192,45 @@
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4 no-print">
-                <div class="flex flex-col sm:flex-row items-center w-full lg:w-auto gap-3">
-                    <div class="relative w-full sm:w-72">
+            <!-- 검색 및 년/월 필터 툴바 -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 no-print">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
+                    <!-- 검색 입력창 -->
+                    <div class="relative w-full sm:w-64">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                             <i class="fa-solid fa-search"></i>
                         </span>
-                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="품목명, 로트 번호, 불량 원인 검색..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="품목명, 로트, 원인 검색..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- 년도 선택 필터 -->
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-semibold text-slate-500 whitespace-nowrap"><i class="fa-regular fa-calendar text-blue-600 mr-1"></i>기간:</span>
+                        <select id="filterYear" onchange="onDateFilterChange()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">전체 연도</option>
+                        </select>
+                        <select id="filterMonth" onchange="onDateFilterChange()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">전체 월</option>
+                            <option value="01">1월</option>
+                            <option value="02">2월</option>
+                            <option value="03">3월</option>
+                            <option value="04">4월</option>
+                            <option value="05">5월</option>
+                            <option value="06">6월</option>
+                            <option value="07">7월</option>
+                            <option value="08">8월</option>
+                            <option value="09">9월</option>
+                            <option value="10">10월</option>
+                            <option value="11">11월</option>
+                            <option value="12">12월</option>
+                        </select>
+                        <button onclick="resetDateFilter()" class="px-2.5 py-2 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-semibold transition" title="기간 필터 초기화">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
                     </div>
                 </div>
                 
+                <!-- 액션 버튼 그룹 -->
                 <div class="flex items-center space-x-2 w-full lg:w-auto justify-end flex-wrap gap-2">
                     <button onclick="backupJSON()" class="inline-flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-semibold transition border border-slate-300" title="데이터 파일 백업 다운로드">
                         <i class="fa-solid fa-download text-slate-600"></i>
@@ -212,6 +260,7 @@
                 </div>
             </div>
 
+            <!-- 테이블 영역 -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden print-container">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 text-left">
@@ -237,7 +286,7 @@
                     <div class="text-slate-300 text-4xl mb-3">
                         <i class="fa-regular fa-folder-open"></i>
                     </div>
-                    <p class="text-slate-500 font-medium">등록된 원자재/생산 불량 내역이 없습니다.</p>
+                    <p class="text-slate-500 font-medium">선택된 기간/조건에 해당하는 원자재/생산 불량 내역이 없습니다.</p>
                 </div>
             </div>
         </div>
@@ -251,15 +300,19 @@
                         <h2 class="text-lg font-bold text-slate-900 flex items-center">
                             <i class="fa-solid fa-calculator text-blue-600 mr-2"></i> 유도등 생산 시간 및 소요 인원 계산기
                         </h2>
-                        <p class="text-sm text-slate-500 mt-1">파라미터를 입력 후 시뮬레이션으로 저장하면 하단 목록에서 한눈에 비교하고 삭제 관리할 수 있습니다.</p>
+                        <p class="text-sm text-slate-500 mt-1">파라미터를 입력하고 계산 결과를 확인한 후, [설정값 수동 저장] 또는 [시뮬레이션 목록 저장]으로 보관할 수 있습니다.</p>
                     </div>
 
                     <!-- Calculator Action Buttons -->
-                    <div class="flex items-center space-x-2 w-full md:w-auto">
-                        <button onclick="saveCurrentCalcPreset()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition flex items-center shadow-sm">
+                    <div class="flex items-center space-x-2 w-full md:w-auto flex-wrap gap-2">
+                        <!-- 수동 저장 버튼 -->
+                        <button onclick="saveCalcStateManually()" id="btnSaveCalcState" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center shadow-sm">
+                            <i class="fa-solid fa-check mr-1.5"></i> 현재 파라미터 저장
+                        </button>
+                        <button onclick="saveCurrentCalcPreset()" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition flex items-center shadow-sm">
                             <i class="fa-solid fa-floppy-disk mr-1.5"></i> 시뮬레이션 결과 저장
                         </button>
-                        <button onclick="resetCalcForm()" class="px-3.5 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition whitespace-nowrap">
+                        <button onclick="resetCalcForm()" class="px-3 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition whitespace-nowrap">
                             입력 초기화
                         </button>
                     </div>
@@ -269,16 +322,19 @@
                     <div class="xl:col-span-4 bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
                         <div class="flex items-center justify-between border-b border-slate-200 pb-2">
                             <h3 class="text-sm font-bold text-slate-800">시뮬레이션 파라미터</h3>
-                            <span class="text-[11px] text-emerald-600 font-medium flex items-center"><i class="fa-solid fa-check text-xs mr-1"></i> 실시간 연산 중</span>
+                            <!-- 저장 상태 배지 -->
+                            <div id="calcSaveStatusBadge" class="text-[11px] font-semibold flex items-center text-slate-500">
+                                <span class="w-2 h-2 rounded-full bg-slate-400 mr-1.5"></span> 저장 상태 확인 중
+                            </div>
                         </div>
                         
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">품목명 / 시나리오명</label>
-                            <input type="text" id="calcItemName" oninput="runAdvancedCalculation()" placeholder="예: [대형-벽부] 피난구 유도등 A라인" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <input type="text" id="calcItemName" oninput="onCalcInputChange()" placeholder="예: [대형-벽부] 피난구 유도등 A라인" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">목표 생산 수량 (EA)</label>
-                            <input type="number" id="calcTargetQty" value="1000" min="0" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="runAdvancedCalculation()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <input type="number" id="calcTargetQty" value="1000" min="0" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="onCalcInputChange()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                         </div>
 
                         <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-100 space-y-3">
@@ -286,15 +342,15 @@
                             <div class="grid grid-cols-3 gap-2">
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-600 mb-1">조립</label>
-                                    <input type="number" id="calcSecAssembly" value="30" min="0" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="runAdvancedCalculation()" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm bg-white text-right">
+                                    <input type="number" id="calcSecAssembly" value="30" min="0" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="onCalcInputChange()" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm bg-white text-right">
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-600 mb-1">검사</label>
-                                    <input type="number" id="calcSecInspection" value="10" min="0" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="runAdvancedCalculation()" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm bg-white text-right">
+                                    <input type="number" id="calcSecInspection" value="10" min="0" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="onCalcInputChange()" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm bg-white text-right">
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-600 mb-1">포장</label>
-                                    <input type="number" id="calcSecPacking" value="5" min="0" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="runAdvancedCalculation()" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm bg-white text-right">
+                                    <input type="number" id="calcSecPacking" value="5" min="0" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="onCalcInputChange()" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm bg-white text-right">
                                 </div>
                             </div>
                             <div class="flex justify-between items-center text-xs pt-1 border-t border-blue-200">
@@ -305,16 +361,16 @@
 
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">작업자 수 (명)</label>
-                            <input type="number" id="calcWorkers" value="5" min="0" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="runAdvancedCalculation()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
+                            <input type="number" id="calcWorkers" value="5" min="0" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="onCalcInputChange()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">1일 근무 (시간)</label>
-                                <input type="number" id="calcWorkHours" value="8" min="0" max="24" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="runAdvancedCalculation()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
+                                <input type="number" id="calcWorkHours" value="8" min="0" max="24" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="onCalcInputChange()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">라인 효율 (%)</label>
-                                <input type="number" id="calcEfficiency" value="90" min="0" max="100" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="runAdvancedCalculation()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
+                                <input type="number" id="calcEfficiency" value="90" min="0" max="100" onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="onCalcInputChange()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
                             </div>
                         </div>
                     </div>
@@ -349,6 +405,7 @@
                     </div>
                 </div>
 
+                <!-- 시뮬레이션 목록 테이블 -->
                 <div class="pt-6 border-t border-slate-200 space-y-3">
                     <div class="flex items-center justify-between">
                         <div>
@@ -391,6 +448,7 @@
         </div>
     </main>
 
+    <!-- Defect Entry Modal -->
     <div id="defectModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden no-print">
         <div class="bg-white rounded-3xl shadow-xl max-w-lg w-full mx-4 overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
             <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
@@ -405,49 +463,35 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">날짜</label>
-                        <input type="date" id="formDate" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
+                        <input type="date" id="formDate" required oninput="markModalDirty()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">로트 번호</label>
-                        <input type="text" id="formLotNo" required placeholder="예: 01-001" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="formLotNo" required oninput="markModalDirty()" placeholder="예: 26-001" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">품목명</label>
-                    <input type="text" id="formItemType" required list="itemSuggestions" placeholder="예: 피난구, 벽부, 대형, 단면" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-slate-600">품목명</label>
+                        <button type="button" onclick="openSettingsModal('items')" class="text-[11px] text-blue-600 hover:underline flex items-center gap-1">
+                            <i class="fa-solid fa-gear text-[10px]"></i> 품목 목록 관리
+                        </button>
+                    </div>
+                    <input type="text" id="formItemType" required list="itemSuggestions" oninput="markModalDirty()" placeholder="품목명을 입력하거나 선택하세요" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
                     <datalist id="itemSuggestions">
-                        <option value="피난구, 벽부, 대형, 단면">
-                        <option value="피난구, 천장, 대형, 단면">
-                        <option value="피난구, 벽부, 중형, 단면">
-                        <option value="피난구, 천장, 중형, 단면">
-                        <option value="피난구, 천장, 중형, 양면">
-                        <option value="피난구, 천장, 중형, 양면 (사람+화살표)">
-                        <option value="피난구, 벽부, 소형, 단면">
-                        <option value="복도, 벽부, 소형, 단면">
-                        <option value="계단, 벽부, 소형, 단면">
-                        <option value="거실,벽부,중형,단면">
-                        <option value="거실,천장,중형,단면">
-                        <option value="거실,천장,중형,양면">
-                        <option value="피난구 중형 음성점멸-벽부형,가로">
-                        <option value="피난구 중형 음성점멸-천정형,세로">
-                        <option value="와이드 음성점멸">
-                        <option value="피난구와이드">
-                        <option value="피난구 소형 음성점멸-벽부형,가로">
-                        <option value="피난구 소형 음성점멸-천정형,세로">
-                        <option value="피난구, 천장, 소형, 단면">
-                        <option value="피난구, 천장, 소형, 양면">
+                        <!-- 동적으로 자바스크립트에서 채워짐 -->
                     </datalist>
                 </div>
 
                 <div class="grid grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">생산 수량</label>
-                        <input type="number" id="formProdQty" min="1" required onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 1)" oninput="calculateDefectRate()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                        <input type="number" id="formProdQty" min="1" required onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 1)" oninput="calculateDefectRate(); markModalDirty();" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">불량 수량</label>
-                        <input type="number" id="formDefectQty" min="0" required onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="calculateDefectRate()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                        <input type="number" id="formDefectQty" min="0" required onfocus="handleNumberInputFocus(this)" onblur="handleNumberInputBlur(this, 0)" oninput="calculateDefectRate(); markModalDirty();" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">불량률 (%)</label>
@@ -456,14 +500,15 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">불량 원인</label>
-                    <input type="text" id="formDefectCause" required list="causeSuggestions" placeholder="예: LED PCB 납땜 불량 및 점등 불량" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-slate-600">불량 원인</label>
+                        <button type="button" onclick="openSettingsModal('causes')" class="text-[11px] text-blue-600 hover:underline flex items-center gap-1">
+                            <i class="fa-solid fa-gear text-[10px]"></i> 불량원인 목록 관리
+                        </button>
+                    </div>
+                    <input type="text" id="formDefectCause" required list="causeSuggestions" oninput="markModalDirty()" placeholder="불량 원인을 입력하거나 선택하세요" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
                     <datalist id="causeSuggestions">
-                        <option value="LED PCB 기판 납땜 불량 및 점등 불량">
-                        <option value="전면 아크릴 커버 스크래치 및 규격 오차">
-                        <option value="인쇄(실크스크린) 까짐 및 번짐 현상">
-                        <option value="조립 시 하우징 파손 및 체결 불량">
-                        <option value="배터리 충전 회로 불량 및 단선">
+                        <!-- 동적으로 자바스크립트에서 채워짐 -->
                     </datalist>
                 </div>
 
@@ -486,14 +531,113 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">비고</label>
-                    <input type="text" id="formRemarks" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                    <input type="text" id="formRemarks" oninput="markModalDirty()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
                 </div>
 
                 <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-200">
                     <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-medium">취소</button>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium shadow-sm">저장하기</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium shadow-sm">
+                        <i class="fa-solid fa-floppy-disk mr-1.5"></i>저장하기
+                    </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- 기준 정보 설정 모달 (품목명 / 불량 원인 리스트 추가 및 삭제 관리) -->
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden no-print">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center space-x-2.5">
+                    <div class="bg-blue-600 text-white p-2.5 rounded-xl text-base shadow-sm">
+                        <i class="fa-solid fa-sliders"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">기준 정보 관리 설정</h3>
+                        <p class="text-xs text-slate-500">불량 내역 등록 시 제공되는 품목명과 불량 원인 선택 목록을 추가/삭제합니다.</p>
+                    </div>
+                </div>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div class="flex border-b border-slate-200 px-6 pt-3 bg-white">
+                <button id="setTabItemBtn" onclick="switchSettingsTab('items')" class="pb-3 px-4 text-xs font-bold border-b-2 border-blue-600 text-blue-600 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-box-open"></i> 품목명 리스트 (<span id="settingItemCount">0</span>)
+                </button>
+                <button id="setTabCauseBtn" onclick="switchSettingsTab('causes')" class="pb-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-triangle-exclamation"></i> 불량 원인 리스트 (<span id="settingCauseCount">0</span>)
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-4 overflow-y-auto text-sm">
+                <!-- PANEL 1: 품목명 관리 -->
+                <div id="panelItemSettings" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">새 품목명 추가</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="newInputItem" placeholder="예: 피난구, 벽부, 특대형, 단면" onkeypress="if(event.key==='Enter'){event.preventDefault(); addNewItemType();}" class="flex-grow px-3.5 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <button type="button" onclick="addNewItemType()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm whitespace-nowrap">
+                                <i class="fa-solid fa-plus"></i> 추가
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 space-y-2">
+                        <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                            <span>등록된 품목명 목록</span>
+                            <span class="text-[11px] text-slate-400 font-normal">우측 삭제(휴지통) 버튼으로 제거 가능</span>
+                        </div>
+                        <div id="settingItemListContainer" class="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+                            <!-- JS로 동적 생성 -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-1">
+                        <button type="button" onclick="resetItemsToDefault()" class="text-xs text-slate-500 hover:text-red-600 underline transition">
+                            <i class="fa-solid fa-rotate-left mr-1"></i>품목 목록 기본값으로 복원
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PANEL 2: 불량 원인 관리 -->
+                <div id="panelCauseSettings" class="hidden space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">새 불량 원인 추가</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="newInputCause" placeholder="예: 단자대 볼트 체결 불량 및 헛돎" onkeypress="if(event.key==='Enter'){event.preventDefault(); addNewDefectCause();}" class="flex-grow px-3.5 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <button type="button" onclick="addNewDefectCause()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm whitespace-nowrap">
+                                <i class="fa-solid fa-plus"></i> 추가
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 space-y-2">
+                        <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                            <span>등록된 불량 원인 목록</span>
+                            <span class="text-[11px] text-slate-400 font-normal">우측 삭제(휴지통) 버튼으로 제거 가능</span>
+                        </div>
+                        <div id="settingCauseListContainer" class="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+                            <!-- JS로 동적 생성 -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-1">
+                        <button type="button" onclick="resetCausesToDefault()" class="text-xs text-slate-500 hover:text-red-600 underline transition">
+                            <i class="fa-solid fa-rotate-left mr-1"></i>불량 원인 목록 기본값으로 복원
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                <span class="text-xs text-slate-500"><i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i>변경 즉시 등록 폼 선택 리스트에 반영됩니다.</span>
+                <button type="button" onclick="closeSettingsModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                    확인 및 닫기
+                </button>
+            </div>
         </div>
     </div>
 
@@ -630,7 +774,7 @@
     </div>
 
     <script>
-        // 기본 Firebase 설정 (직접 코드에 기재하거나 우측 상단 'Firebase 설정' 버튼에서 입력 가능)
+        // 기본 Firebase 설정
         const DEFAULT_FIREBASE_CONFIG = {
             apiKey: "AIzaSyAUKheBYwfMhkUoq2mzNtRIC0lic04yc-0",
             authDomain: "gfs-bb0da.firebaseapp.com",
@@ -640,6 +784,46 @@
             appId: "1:19039205844:web:54c7a68ae8085db253be41",
             measurementId: "G-EFJVPWXPSV"
         };
+
+        // 기본 품목명 리스트
+        const DEFAULT_ITEM_TYPES = [
+            "피난구, 벽부, 대형, 단면",
+            "피난구, 천장, 대형, 단면",
+            "피난구, 벽부, 중형, 단면",
+            "피난구, 천장, 중형, 단면",
+            "피난구, 천장, 중형, 양면",
+            "피난구, 천장, 중형, 양면 (사람+화살표)",
+            "피난구, 벽부, 소형, 단면",
+            "복도, 벽부, 소형, 단면",
+            "계단, 벽부, 소형, 단면",
+            "거실, 벽부, 중형, 단면",
+            "거실, 천장, 중형, 단면",
+            "거실, 천장, 중형, 양면",
+            "피난구 중형 음성점멸-벽부형, 가로",
+            "피난구 중형 음성점멸-천정형, 세로",
+            "와이드 음성점멸",
+            "피난구와이드",
+            "피난구 소형 음성점멸-벽부형, 가로",
+            "피난구 소형 음성점멸-천정형, 세로",
+            "피난구, 천장, 소형, 단면",
+            "피난구, 천장, 소형, 양면"
+        ];
+
+        // 기본 불량 원인 리스트
+        const DEFAULT_DEFECT_CAUSES = [
+            "LED PCB 기판 납땜 불량 및 점등 불량",
+            "전면 아크릴 커버 스크래치 및 규격 오차",
+            "인쇄(실크스크린) 까짐 및 번짐 현상",
+            "조립 시 하우징 파손 및 체결 불량",
+            "배터리 충전 회로 불량 및 단선"
+        ];
+
+        let itemTypes = [];
+        let defectCauses = [];
+
+        // 저장 상태 추적 변수 (수동 저장 및 미저장 이탈 방지용)
+        let isCalcDirty = false;
+        let isModalDirty = false;
 
         const DB_NAME = 'EmergencyLightDB';
         const DB_VERSION = 1;
@@ -651,7 +835,7 @@
         let unsubscribePresets = null;
         let defects = [];
 
-        // --- IndexedDB (로컬 캐시 및 오프라인 백업) ---
+        // --- IndexedDB ---
         function initLocalDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -767,18 +951,18 @@
                         {
                             id: 'default_1',
                             date: '2026-10-16',
-                            itemType: 'PLELC-1101_피난구, 천장, 대형, 단면',
+                            itemType: '피난구, 천장, 대형, 단면',
                             lotNo: '26-002',
                             prodQty: 300,
                             defectQty: 15,
-                            defectCause: '조립시 파손 및 하우징 스크래치',
+                            defectCause: '조립 시 하우징 파손 및 체결 불량',
                             photo: '',
                             remarks: '재작업 요청 완료'
                         },
                         {
                             id: 'default_2',
                             date: '2026-10-16',
-                            itemType: 'PLELW-1101_피난구, 벽부, 대형, 단면',
+                            itemType: '피난구, 벽부, 대형, 단면',
                             lotNo: '26-001',
                             prodQty: 500,
                             defectQty: 2,
@@ -790,6 +974,7 @@
                     await saveAllToLocalDB(defaultSamples);
                     defects = defaultSamples;
                 }
+                updateYearFilterOptions();
                 renderTable();
                 return;
             }
@@ -803,12 +988,11 @@
                 if (!firebase.apps.length) {
                     firebase.initializeApp(config);
                     if (typeof firebase.analytics === 'function') {
-                        try { firebase.analytics(); } catch (e) { /* analytics optional */ }
+                        try { firebase.analytics(); } catch (e) { /* analytics */ }
                     }
                 }
                 firestoreDb = firebase.firestore();
 
-                // 오프라인 캐시 및 탭 간 동기화 활성화
                 try {
                     await firestoreDb.enablePersistence({ synchronizeTabs: true });
                 } catch (persErr) {
@@ -826,6 +1010,7 @@
                     });
                     list.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
                     defects = list;
+                    updateYearFilterOptions();
                     renderTable();
                     saveAllToLocalDB(list).catch(() => {});
                     updateDbStatus('connected', 'Firebase 클라우드 연동됨');
@@ -854,6 +1039,7 @@
                 updateDbStatus('error', '연결 실패 (로컬 모드 유지)');
                 showToast("Firebase 초기화 실패: " + err.message, true);
                 defects = await loadDataFromLocalDB();
+                updateYearFilterOptions();
                 renderTable();
             }
         }
@@ -955,6 +1141,7 @@
                 updateDbStatus('local', '로컬 모드 (IndexedDB)');
                 closeDbConfigModal();
                 defects = await loadDataFromLocalDB();
+                updateYearFilterOptions();
                 renderTable();
                 showToast("로컬 모드로 전환되었습니다.");
             }
@@ -991,7 +1178,7 @@
             }
         }
 
-        // --- 통합 데이터 입출력 (Firebase Firestore + 로컬 IndexedDB 이중화) ---
+        // --- 데이터 입출력 (Firestore + IndexedDB) ---
         async function saveItemToDB(item) {
             await saveItemToLocalDB(item);
             if (isFirebaseReady && firestoreDb) {
@@ -1031,8 +1218,264 @@
             }
         }
 
-        // --- CALCULATION PERSISTENCE & PRESETS ---
-        function autoSaveCalcState() {
+        // ==========================================
+        // 1. 년도 / 월 필터 기능
+        // ==========================================
+        function updateYearFilterOptions() {
+            const yearSelect = document.getElementById('filterYear');
+            const currentSelected = yearSelect.value;
+            
+            // 데이터 내 존재하는 고유 연도 목록 추출
+            const yearsSet = new Set();
+            defects.forEach(item => {
+                if (item.date) {
+                    const yr = item.date.split('-')[0];
+                    if (yr && yr.length === 4) yearsSet.add(yr);
+                }
+            });
+
+            // 현재 연도도 기본 포함
+            const thisYear = new Date().getFullYear().toString();
+            yearsSet.add(thisYear);
+
+            const sortedYears = Array.from(yearsSet).sort((a, b) => b - a);
+
+            yearSelect.innerHTML = '<option value="">전체 연도</option>';
+            sortedYears.forEach(yr => {
+                const opt = document.createElement('option');
+                opt.value = yr;
+                opt.innerText = `${yr}년`;
+                if (yr === currentSelected) opt.selected = true;
+                yearSelect.appendChild(opt);
+            });
+        }
+
+        function onDateFilterChange() {
+            renderTable();
+        }
+
+        function resetDateFilter() {
+            document.getElementById('filterYear').value = '';
+            document.getElementById('filterMonth').value = '';
+            document.getElementById('searchInput').value = '';
+            renderTable();
+            showToast("기간 및 검색 필터가 초기화되었습니다.");
+        }
+
+        // ==========================================
+        // 2. 기준 정보 설정 관리 (품목명 / 불량 원인)
+        // ==========================================
+        function loadSettings() {
+            try {
+                const savedItems = localStorage.getItem('gfs_setting_items');
+                itemTypes = savedItems ? JSON.parse(savedItems) : [...DEFAULT_ITEM_TYPES];
+
+                const savedCauses = localStorage.getItem('gfs_setting_causes');
+                defectCauses = savedCauses ? JSON.parse(savedCauses) : [...DEFAULT_DEFECT_CAUSES];
+            } catch (e) {
+                console.error("Settings load error", e);
+                itemTypes = [...DEFAULT_ITEM_TYPES];
+                defectCauses = [...DEFAULT_DEFECT_CAUSES];
+            }
+            updateDatalists();
+            renderSettingsList();
+        }
+
+        function saveSettings() {
+            localStorage.setItem('gfs_setting_items', JSON.stringify(itemTypes));
+            localStorage.setItem('gfs_setting_causes', JSON.stringify(defectCauses));
+            updateDatalists();
+            renderSettingsList();
+        }
+
+        function updateDatalists() {
+            // 품목명 Datalist
+            const itemDl = document.getElementById('itemSuggestions');
+            itemDl.innerHTML = '';
+            itemTypes.forEach(type => {
+                const opt = document.createElement('option');
+                opt.value = type;
+                itemDl.appendChild(opt);
+            });
+
+            // 불량 원인 Datalist
+            const causeDl = document.getElementById('causeSuggestions');
+            causeDl.innerHTML = '';
+            defectCauses.forEach(cause => {
+                const opt = document.createElement('option');
+                opt.value = cause;
+                causeDl.appendChild(opt);
+            });
+
+            // 카운트 배지 갱신
+            document.getElementById('settingItemCount').innerText = itemTypes.length;
+            document.getElementById('settingCauseCount').innerText = defectCauses.length;
+        }
+
+        function renderSettingsList() {
+            // 품목명 리스트
+            const itemContainer = document.getElementById('settingItemListContainer');
+            itemContainer.innerHTML = '';
+            if (itemTypes.length === 0) {
+                itemContainer.innerHTML = '<p class="text-xs text-slate-400 py-3 text-center">등록된 품목명이 없습니다. 위 입력창에서 추가해주세요.</p>';
+            } else {
+                itemTypes.forEach((item, index) => {
+                    const row = document.createElement('div');
+                    row.className = "flex items-center justify-between px-3 py-2 bg-white rounded-xl border border-slate-200 text-xs text-slate-700 hover:border-blue-300 transition group";
+                    row.innerHTML = `
+                        <span class="font-medium truncate mr-2">${index + 1}. ${item}</span>
+                        <button type="button" onclick="deleteItemType(${index})" class="text-slate-400 hover:text-red-600 p-1 rounded-lg transition" title="삭제">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    `;
+                    itemContainer.appendChild(row);
+                });
+            }
+
+            // 불량 원인 리스트
+            const causeContainer = document.getElementById('settingCauseListContainer');
+            causeContainer.innerHTML = '';
+            if (defectCauses.length === 0) {
+                causeContainer.innerHTML = '<p class="text-xs text-slate-400 py-3 text-center">등록된 불량 원인이 없습니다. 위 입력창에서 추가해주세요.</p>';
+            } else {
+                defectCauses.forEach((cause, index) => {
+                    const row = document.createElement('div');
+                    row.className = "flex items-center justify-between px-3 py-2 bg-white rounded-xl border border-slate-200 text-xs text-slate-700 hover:border-blue-300 transition group";
+                    row.innerHTML = `
+                        <span class="font-medium truncate mr-2">${index + 1}. ${cause}</span>
+                        <button type="button" onclick="deleteDefectCause(${index})" class="text-slate-400 hover:text-red-600 p-1 rounded-lg transition" title="삭제">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    `;
+                    causeContainer.appendChild(row);
+                });
+            }
+        }
+
+        function addNewItemType() {
+            const input = document.getElementById('newInputItem');
+            const val = input.value.trim();
+            if (!val) {
+                alert("추가할 품목명을 입력해주세요.");
+                input.focus();
+                return;
+            }
+            if (itemTypes.includes(val)) {
+                alert("이미 목록에 등록되어 있는 품목명입니다.");
+                input.focus();
+                return;
+            }
+            itemTypes.push(val);
+            saveSettings();
+            input.value = '';
+            showToast(`'${val}' 품목명이 추가되었습니다.`);
+        }
+
+        function deleteItemType(index) {
+            const removed = itemTypes[index];
+            if (confirm(`'${removed}' 품목명을 삭제하시겠습니까?`)) {
+                itemTypes.splice(index, 1);
+                saveSettings();
+                showToast(`'${removed}' 품목명이 삭제되었습니다.`);
+            }
+        }
+
+        function resetItemsToDefault() {
+            if (confirm("품목명 목록을 시스템 기본값(20개 항목)으로 초기화하시겠습니까?")) {
+                itemTypes = [...DEFAULT_ITEM_TYPES];
+                saveSettings();
+                showToast("품목명 목록이 기본값으로 복원되었습니다.");
+            }
+        }
+
+        function addNewDefectCause() {
+            const input = document.getElementById('newInputCause');
+            const val = input.value.trim();
+            if (!val) {
+                alert("추가할 불량 원인을 입력해주세요.");
+                input.focus();
+                return;
+            }
+            if (defectCauses.includes(val)) {
+                alert("이미 목록에 등록되어 있는 불량 원인입니다.");
+                input.focus();
+                return;
+            }
+            defectCauses.push(val);
+            saveSettings();
+            input.value = '';
+            showToast(`'${val}' 불량 원인이 추가되었습니다.`);
+        }
+
+        function deleteDefectCause(index) {
+            const removed = defectCauses[index];
+            if (confirm(`'${removed}' 불량 원인을 삭제하시겠습니까?`)) {
+                defectCauses.splice(index, 1);
+                saveSettings();
+                showToast(`'${removed}' 불량 원인이 삭제되었습니다.`);
+            }
+        }
+
+        function resetCausesToDefault() {
+            if (confirm("불량 원인 목록을 시스템 기본값으로 초기화하시겠습니까?")) {
+                defectCauses = [...DEFAULT_DEFECT_CAUSES];
+                saveSettings();
+                showToast("불량 원인 목록이 기본값으로 복원되었습니다.");
+            }
+        }
+
+        function openSettingsModal(defaultTab = 'items') {
+            switchSettingsTab(defaultTab);
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function switchSettingsTab(tab) {
+            const isItem = tab === 'items';
+            document.getElementById('panelItemSettings').classList.toggle('hidden', !isItem);
+            document.getElementById('panelCauseSettings').classList.toggle('hidden', isItem);
+
+            document.getElementById('setTabItemBtn').className = isItem
+                ? "pb-3 px-4 text-xs font-bold border-b-2 border-blue-600 text-blue-600 transition flex items-center gap-1.5"
+                : "pb-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5";
+
+            document.getElementById('setTabCauseBtn').className = !isItem
+                ? "pb-3 px-4 text-xs font-bold border-b-2 border-blue-600 text-blue-600 transition flex items-center gap-1.5"
+                : "pb-3 px-4 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5";
+        }
+
+        // ==========================================
+        // 3. 수동 저장 및 미저장 이탈 방지 알림
+        // ==========================================
+        function markCalcDirty() {
+            isCalcDirty = true;
+            updateCalcDirtyStatus();
+        }
+
+        function updateCalcDirtyStatus() {
+            const badge = document.getElementById('calcSaveStatusBadge');
+            const btn = document.getElementById('btnSaveCalcState');
+            if (isCalcDirty) {
+                badge.className = "text-[11px] font-semibold flex items-center text-amber-600";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-ping mr-1.5"></span> 미저장 변경사항 있음`;
+                if (btn) btn.className = "px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition flex items-center shadow-sm animate-pulse";
+            } else {
+                badge.className = "text-[11px] font-semibold flex items-center text-emerald-600";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span> 설정값 저장됨`;
+                if (btn) btn.className = "px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center shadow-sm";
+            }
+        }
+
+        function onCalcInputChange() {
+            runAdvancedCalculation();
+            markCalcDirty();
+        }
+
+        // 사용자가 명시적으로 저장 버튼을 누를 때만 파라미터 저장
+        function saveCalcStateManually() {
             const state = {
                 itemName: document.getElementById('calcItemName').value,
                 targetQty: document.getElementById('calcTargetQty').value,
@@ -1043,11 +1486,14 @@
                 workHours: document.getElementById('calcWorkHours').value,
                 efficiency: document.getElementById('calcEfficiency').value
             };
-            localStorage.setItem('calc_auto_save_state', JSON.stringify(state));
+            localStorage.setItem('calc_manual_saved_state', JSON.stringify(state));
+            isCalcDirty = false;
+            updateCalcDirtyStatus();
+            showToast("현재 파라미터 설정값이 저장되었습니다.");
         }
 
         function restoreCalcState() {
-            const saved = localStorage.getItem('calc_auto_save_state');
+            const saved = localStorage.getItem('calc_manual_saved_state') || localStorage.getItem('calc_auto_save_state');
             if (saved) {
                 try {
                     const state = JSON.parse(saved);
@@ -1063,9 +1509,29 @@
                     console.error("Calculator state restore error", e);
                 }
             }
+            isCalcDirty = false;
+            updateCalcDirtyStatus();
             renderCalcPresetsTable();
         }
 
+        // 불량 등록 모달 작성 중 미저장 플래그
+        function markModalDirty() {
+            isModalDirty = true;
+        }
+
+        // 창 닫기/새로고침 시 저장하지 않은 변경사항이 있으면 경고 알림창 띄우기
+        window.addEventListener('beforeunload', function (e) {
+            if (isCalcDirty || isModalDirty) {
+                const message = "작성 및 변경된 내용이 아직 저장되지 않았습니다. 페이지를 벗어나시겠습니까?";
+                e.preventDefault();
+                e.returnValue = message;
+                return message;
+            }
+        });
+
+        // ==========================================
+        // CALCULATION & SIMULATION PRESETS
+        // ==========================================
         async function saveCurrentCalcPreset() {
             const itemName = document.getElementById('calcItemName').value.trim() || '미지정 시뮬레이션';
             const presets = JSON.parse(localStorage.getItem('calc_presets') || '[]');
@@ -1175,7 +1641,8 @@
                 document.getElementById('calcWorkHours').value = d.workHours;
                 document.getElementById('calcEfficiency').value = d.efficiency;
                 runAdvancedCalculation();
-                showToast(`'${found.name}' 시뮬레이션을 불러왔습니다.`);
+                markCalcDirty();
+                showToast(`'${found.name}' 시뮬레이션을 불러왔습니다. (저장하려면 파라미터 저장을 누르세요)`);
             }
         }
 
@@ -1197,26 +1664,10 @@
             }
         }
 
-        function deleteSelectedCalcPreset() {
-            const select = document.getElementById('calcPresetSelect');
-            const presetId = select.value;
-            if (!presetId) {
-                alert("삭제할 저장 프리셋을 불러오기 항목에서 선택해주세요.");
-                return;
-            }
-
-            if (confirm("선택한 저장 항목을 삭제하시겠습니까?")) {
-                let presets = JSON.parse(localStorage.getItem('calc_presets') || '[]');
-                presets = presets.filter(p => p.id !== presetId);
-                localStorage.setItem('calc_presets', JSON.stringify(presets));
-                renderCalcPresetsSelect();
-                showToast("저장된 프리셋이 삭제되었습니다.", true);
-            }
-        }
-
         // --- MAIN INITIALIZATION ---
         window.addEventListener('DOMContentLoaded', async () => {
             try {
+                loadSettings();
                 await initLocalDB();
                 await initFirebaseSystem();
                 restoreCalcState();
@@ -1238,7 +1689,7 @@
             if (input.value.trim() === '') {
                 input.value = defaultValue;
                 if (input.id.startsWith('calc')) {
-                    runAdvancedCalculation();
+                    onCalcInputChange();
                 } else if (input.id.startsWith('form')) {
                     calculateDefectRate();
                 }
@@ -1248,27 +1699,78 @@
         function triggerPrint() {
             const now = new Date();
             document.getElementById('printDateStr').innerText = now.toLocaleString('ko-KR');
+            
+            const selYear = document.getElementById('filterYear').value;
+            const selMonth = document.getElementById('filterMonth').value;
+            let periodText = "";
+            if (selYear && selMonth) periodText = `(${selYear}년 ${parseInt(selMonth, 10)}월)`;
+            else if (selYear) periodText = `(${selYear}년 전체)`;
+            else if (selMonth) periodText = `(전체 연도 ${parseInt(selMonth, 10)}월)`;
+            else periodText = `(전체 기간)`;
+            document.getElementById('printFilterNotice').innerText = periodText;
+
             window.print();
+        }
+
+        // ==========================================
+        // TABLE RENDERING (년/월 필터 및 통계 연동)
+        // ==========================================
+        function getFilteredDefects() {
+            const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
+            const filterYear = document.getElementById('filterYear').value;
+            const filterMonth = document.getElementById('filterMonth').value;
+
+            return defects.filter(item => {
+                // 1. 년도 필터
+                if (filterYear) {
+                    if (!item.date || !item.date.startsWith(filterYear)) return false;
+                }
+                // 2. 월 필터
+                if (filterMonth) {
+                    if (!item.date) return false;
+                    const parts = item.date.split('-');
+                    if (parts.length < 2 || parts[1] !== filterMonth) return false;
+                }
+                // 3. 검색어 필터
+                if (searchVal) {
+                    const matchLot = (item.lotNo || '').toLowerCase().includes(searchVal);
+                    const matchCause = (item.defectCause || '').toLowerCase().includes(searchVal);
+                    const matchItem = (item.itemType || '').toLowerCase().includes(searchVal);
+                    const matchRemarks = (item.remarks || '').toLowerCase().includes(searchVal);
+                    if (!matchLot && !matchCause && !matchItem && !matchRemarks) return false;
+                }
+                return true;
+            });
         }
 
         function renderTable() {
             const tbody = document.getElementById('defectTableBody');
-            const searchVal = document.getElementById('searchInput').value.toLowerCase();
             tbody.innerHTML = '';
 
-            let totalProd = 0, totalDefect = 0;
-            let filtered = defects.filter(item => 
-                (item.lotNo || '').toLowerCase().includes(searchVal) ||
-                (item.defectCause || '').toLowerCase().includes(searchVal) ||
-                (item.itemType || '').toLowerCase().includes(searchVal)
-            );
+            const filterYear = document.getElementById('filterYear').value;
+            const filterMonth = document.getElementById('filterMonth').value;
 
-            defects.forEach(d => {
+            // 라벨 표시 업데이트
+            let periodLabel = "";
+            if (filterYear && filterMonth) periodLabel = `(${filterYear}년 ${parseInt(filterMonth, 10)}월)`;
+            else if (filterYear) periodLabel = `(${filterYear}년)`;
+            else if (filterMonth) periodLabel = `(${parseInt(filterMonth, 10)}월)`;
+            
+            for (let i = 1; i <= 4; i++) {
+                const el = document.getElementById(`cardPeriodLabel${i}`);
+                if (el) el.innerText = periodLabel;
+            }
+
+            const filtered = getFilteredDefects();
+
+            // 통계 집계: 선택된 기간/검색 조건에 맞춤
+            let totalProd = 0, totalDefect = 0;
+            filtered.forEach(d => {
                 totalProd += Number(d.prodQty || 0);
                 totalDefect += Number(d.defectQty || 0);
             });
 
-            document.getElementById('statTotal').innerText = defects.length;
+            document.getElementById('statTotal').innerText = filtered.length.toLocaleString();
             document.getElementById('statProdQty').innerText = totalProd.toLocaleString();
             document.getElementById('statDefectQty').innerText = totalDefect.toLocaleString();
             document.getElementById('statAvgRate').innerText = totalProd > 0 ? ((totalDefect / totalProd) * 100).toFixed(2) + '%' : '0.00%';
@@ -1279,7 +1781,7 @@
                 document.getElementById('emptyState').classList.add('hidden');
             }
 
-            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+            filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
             filtered.forEach(item => {
                 const prodNum = Number(item.prodQty || 0);
@@ -1294,9 +1796,9 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition";
                 tr.innerHTML = `
-                    <td class="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">${item.date}</td>
-                    <td class="px-4 py-3 text-xs font-medium text-slate-800 whitespace-nowrap">${item.itemType}</td>
-                    <td class="px-4 py-3 text-xs font-mono font-semibold text-blue-600 whitespace-nowrap">${item.lotNo}</td>
+                    <td class="px-4 py-3 text-xs text-slate-600 whitespace-nowrap font-medium">${item.date}</td>
+                    <td class="px-4 py-3 text-xs font-semibold text-slate-800 whitespace-nowrap">${item.itemType}</td>
+                    <td class="px-4 py-3 text-xs font-mono font-bold text-blue-600 whitespace-nowrap">${item.lotNo}</td>
                     <td class="px-4 py-3 text-xs text-right font-medium text-slate-700 whitespace-nowrap">${prodNum.toLocaleString()} EA</td>
                     <td class="px-4 py-3 text-xs text-right font-bold text-red-600 whitespace-nowrap">${defectNum.toLocaleString()} EA</td>
                     <td class="px-4 py-3 text-xs text-right font-semibold text-slate-700 whitespace-nowrap">${rate}%</td>
@@ -1333,9 +1835,6 @@
             const workHours = parseFloat(document.getElementById('calcWorkHours').value) || 0;
             const efficiency = (parseFloat(document.getElementById('calcEfficiency').value) || 0) / 100;
 
-            // 실시간 상태 자동 저장
-            autoSaveCalcState();
-
             if (targetQty <= 0 || secPerItem <= 0 || workers <= 0 || workHours <= 0) {
                 document.getElementById('resTotalHours').innerText = `0 시간`;
                 document.getElementById('resDaysNeeded').innerText = `예상 소요 일수: 0.0일`;
@@ -1359,6 +1858,9 @@
         }
 
         function resetCalcForm() {
+            if (isCalcDirty && !confirm("입력 중인 내용이 저장되지 않았습니다. 정말 초기화하시겠습니까?")) {
+                return;
+            }
             document.getElementById('calcItemName').value = '';
             document.getElementById('calcTargetQty').value = 0;
             document.getElementById('calcSecAssembly').value = 0;
@@ -1367,15 +1869,16 @@
             document.getElementById('calcWorkers').value = 0;
             document.getElementById('calcWorkHours').value = 0;
             document.getElementById('calcEfficiency').value = 0;
-            document.getElementById('calcPresetSelect').value = '';
             runAdvancedCalculation();
-            showToast("계산기 입력값이 초기화되었습니다.");
+            markCalcDirty();
+            showToast("계산기 입력값이 초기화되었습니다. (저장하려면 파라미터 저장을 누르세요)");
         }
 
         function openModal(id = null) {
             document.getElementById('defectForm').reset();
             document.getElementById('editId').value = '';
             clearPhoto();
+            isModalDirty = false;
             document.getElementById('formDate').value = new Date().toISOString().split('T')[0];
 
             if (id) {
@@ -1407,7 +1910,13 @@
             document.getElementById('defectModal').classList.remove('hidden');
         }
 
-        function closeModal() {
+        function closeModal(force = false) {
+            if (!force && isModalDirty) {
+                if (!confirm("작성 중인 내용이 아직 저장되지 않았습니다. 창을 닫으시겠습니까?")) {
+                    return;
+                }
+            }
+            isModalDirty = false;
             document.getElementById('defectModal').classList.add('hidden');
         }
 
@@ -1447,6 +1956,7 @@
             const file = event.target.files[0];
             if (!file) return;
 
+            markModalDirty();
             try {
                 const compressedBase64 = await compressImage(file, 900, 900, 0.7);
                 document.getElementById('formPhotoBase64').value = compressedBase64;
@@ -1475,6 +1985,7 @@
             document.getElementById('formPhotoFile').value = '';
             document.getElementById('photoFileName').innerText = "선택된 파일 없음";
             document.getElementById('removePhotoBtn').classList.add('hidden');
+            markModalDirty();
         }
 
         function openLightbox(src) {
@@ -1504,15 +2015,17 @@
             if (id) {
                 const idx = defects.findIndex(d => d.id === id);
                 if (idx !== -1) defects[idx] = itemData;
-                showToast("불량 내역이 수정되었습니다.");
+                showToast("불량 내역이 수정 및 저장되었습니다.");
             } else {
                 defects.unshift(itemData);
-                showToast("새 불량 내역이 등록되었습니다.");
+                showToast("새 불량 내역이 성공적으로 저장되었습니다.");
             }
             
+            isModalDirty = false;
             await saveItemToDB(itemData);
+            updateYearFilterOptions();
             renderTable();
-            closeModal();
+            closeModal(true);
         }
 
         function editDefect(id) {
@@ -1523,6 +2036,7 @@
             if (confirm("해당 불량 내역을 정말로 삭제하시겠습니까?")) {
                 defects = defects.filter(d => d.id !== id);
                 await deleteItemFromDB(id);
+                updateYearFilterOptions();
                 renderTable();
                 showToast("선택된 내역이 삭제되었습니다.", true);
             }
@@ -1556,6 +2070,7 @@
                     if (Array.isArray(importedData)) {
                         defects = importedData;
                         await saveAllToDB(defects);
+                        updateYearFilterOptions();
                         renderTable();
                         showToast("백업 데이터가 성공적으로 복구되었습니다!");
                     } else {
@@ -1569,10 +2084,11 @@
         }
 
         function exportToCSV() {
+            const filtered = getFilteredDefects();
             let csvContent = "\uFEFF";
             csvContent += "날짜,품목명,로트 번호,생산 수량,불량 수량,불량률 (%),불량 원인,비고\n";
             
-            defects.forEach((item) => {
+            filtered.forEach((item) => {
                 const prodNum = Number(item.prodQty || 0);
                 const defectNum = Number(item.defectQty || 0);
                 const rate = prodNum > 0 ? ((defectNum / prodNum) * 100).toFixed(2) + "%" : "0.00%";
@@ -1590,15 +2106,17 @@
                 csvContent += row.join(",") + "\n";
             });
 
+            const selYear = document.getElementById('filterYear').value || '전체';
+            const selMonth = document.getElementById('filterMonth').value || '전체';
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `유도등_불량내역대장_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `유도등_불량내역대장_${selYear}년_${selMonth}월_${new Date().toISOString().split('T')[0]}.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            showToast("엑셀(CSV) 파일로 내보내기 되었습니다.");
+            showToast("현재 필터링된 내역이 엑셀(CSV) 파일로 내보내기 되었습니다.");
         }
 
         function showToast(msg, isError = false) {
