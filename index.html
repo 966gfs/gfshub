@@ -228,10 +228,21 @@
                             <i class="fa-solid fa-rotate-right"></i>
                         </button>
                     </div>
+                    <!-- 대장 수동 저장 상태 배지 -->
+                    <div id="defectSaveStatusBadge" class="hidden sm:flex items-center text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                        <span id="defectSaveStatusDot" class="w-2 h-2 rounded-full bg-slate-400 mr-1.5"></span>
+                        <span id="defectSaveStatusText">저장됨</span>
+                    </div>
                 </div>
                 
                 <!-- 액션 버튼 그룹 -->
                 <div class="flex items-center space-x-2 w-full lg:w-auto justify-end flex-wrap gap-2">
+                    <!-- 대장 변경사항 수동 저장 버튼 -->
+                    <button id="btnSaveDefects" onclick="commitDefectsToDB()" class="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm" title="변경된 대장 내역을 DB에 저장합니다.">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span id="btnSaveDefectsText">대장 저장</span>
+                    </button>
+
                     <button onclick="backupJSON()" class="inline-flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-semibold transition border border-slate-300" title="데이터 파일 백업 다운로드">
                         <i class="fa-solid fa-download text-slate-600"></i>
                         <span>백업 저장</span>
@@ -449,8 +460,8 @@
     </main>
 
     <!-- Defect Entry Modal -->
-    <div id="defectModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden no-print">
-        <div class="bg-white rounded-3xl shadow-xl max-w-lg w-full mx-4 overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+    <div id="defectModal" onclick="if(event.target===this) closeModal();" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden no-print">
+        <div class="bg-white rounded-3xl shadow-xl max-w-lg w-full mx-4 overflow-hidden transform transition-all flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
             <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
                 <h3 id="modalTitle" class="text-lg font-bold text-slate-900">불량 내역 등록</h3>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
@@ -824,6 +835,8 @@
         // 저장 상태 추적 변수 (수동 저장 및 미저장 이탈 방지용)
         let isCalcDirty = false;
         let isModalDirty = false;
+        let isDefectListDirty = false;
+        let pendingDefectCount = 0;
 
         const DB_NAME = 'EmergencyLightDB';
         const DB_VERSION = 1;
@@ -1004,6 +1017,7 @@
                 // 불량 내역 Firestore 실시간 리스너 연결
                 if (unsubscribeDefects) unsubscribeDefects();
                 unsubscribeDefects = firestoreDb.collection('defects').onSnapshot((snapshot) => {
+                    if (isDefectListDirty) return; // 사용자가 미저장 상태로 작업 중일 때는 덮어쓰지 않음
                     const list = [];
                     snapshot.forEach(doc => {
                         list.push({ id: doc.id, ...doc.data() });
@@ -1012,6 +1026,7 @@
                     defects = list;
                     updateYearFilterOptions();
                     renderTable();
+                    updateDefectDirtyStatus();
                     saveAllToLocalDB(list).catch(() => {});
                     updateDbStatus('connected', 'Firebase 클라우드 연동됨');
                 }, (err) => {
@@ -1514,6 +1529,51 @@
             renderCalcPresetsTable();
         }
 
+        // --- 원자재 불량 관리 대장 수동 저장 체계 ---
+        function markDefectListDirty(delta = 1) {
+            isDefectListDirty = true;
+            pendingDefectCount += delta;
+            updateDefectDirtyStatus();
+        }
+
+        function updateDefectDirtyStatus() {
+            const badge = document.getElementById('defectSaveStatusBadge');
+            const dot = document.getElementById('defectSaveStatusDot');
+            const text = document.getElementById('defectSaveStatusText');
+            const btn = document.getElementById('btnSaveDefects');
+            const btnText = document.getElementById('btnSaveDefectsText');
+
+            if (!badge || !btn) return;
+
+            if (isDefectListDirty) {
+                badge.className = "flex items-center text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-300 shadow-sm animate-pulse";
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-amber-500 mr-1.5";
+                if (text) text.innerText = `미저장 변경 (${pendingDefectCount}건)`;
+                btn.className = "inline-flex items-center space-x-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-md ring-2 ring-amber-400";
+                if (btnText) btnText.innerText = "대장 저장 (필요)";
+            } else {
+                badge.className = "hidden sm:flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200";
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-500 mr-1.5";
+                if (text) text.innerText = "대장 저장 완료";
+                btn.className = "inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm";
+                if (btnText) btnText.innerText = "대장 저장";
+            }
+        }
+
+        async function commitDefectsToDB() {
+            try {
+                showToast("원자재 불량 관리 대장 저장 중...");
+                await saveAllToDB(defects);
+                isDefectListDirty = false;
+                pendingDefectCount = 0;
+                updateDefectDirtyStatus();
+                showToast("원자재 불량 관리 대장이 성공적으로 저장되었습니다!");
+            } catch (err) {
+                console.error("Save defects error:", err);
+                showToast("대장 저장 중 오류 발생: " + err.message, true);
+            }
+        }
+
         // 불량 등록 모달 작성 중 미저장 플래그
         function markModalDirty() {
             isModalDirty = true;
@@ -1521,8 +1581,8 @@
 
         // 창 닫기/새로고침 시 저장하지 않은 변경사항이 있으면 경고 알림창 띄우기
         window.addEventListener('beforeunload', function (e) {
-            if (isCalcDirty || isModalDirty) {
-                const message = "작성 및 변경된 내용이 아직 저장되지 않았습니다. 페이지를 벗어나시겠습니까?";
+            if (isDefectListDirty || isModalDirty || isCalcDirty) {
+                const message = "원자재 불량 관리 대장 및 입력 내용에 아직 저장되지 않은 변경사항이 있습니다. 페이지를 벗어나시겠습니까?";
                 e.preventDefault();
                 e.returnValue = message;
                 return message;
@@ -1672,6 +1732,7 @@
                 await initFirebaseSystem();
                 restoreCalcState();
                 runAdvancedCalculation();
+                updateDefectDirtyStatus();
             } catch (err) {
                 console.error('Init failure:', err);
             }
@@ -1912,8 +1973,21 @@
 
         function closeModal(force = false) {
             if (!force && isModalDirty) {
-                if (!confirm("작성 중인 내용이 아직 저장되지 않았습니다. 창을 닫으시겠습니까?")) {
-                    return;
+                const wantSave = confirm("입력 중인 불량 내역이 아직 저장되지 않았습니다.\n\n[확인]: 작성한 내용을 대장에 반영하고 창 닫기\n[취소]: 저장하지 않고 닫기");
+                if (wantSave) {
+                    const form = document.getElementById('defectForm');
+                    if (form.checkValidity()) {
+                        saveDefect();
+                        return;
+                    } else {
+                        alert("필수 입력 항목(날짜, 품목명, 로트번호 등)을 모두 올바르게 입력해주세요.");
+                        form.reportValidity();
+                        return;
+                    }
+                } else {
+                    if (!confirm("작성 중이던 내용을 모두 취소하고 창을 닫으시겠습니까?")) {
+                        return;
+                    }
                 }
             }
             isModalDirty = false;
@@ -1998,7 +2072,7 @@
         }
 
         async function saveDefect(e) {
-            e.preventDefault();
+            if (e) e.preventDefault();
             const id = document.getElementById('editId').value;
             const itemData = {
                 id: id || ('item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
@@ -2015,14 +2089,15 @@
             if (id) {
                 const idx = defects.findIndex(d => d.id === id);
                 if (idx !== -1) defects[idx] = itemData;
-                showToast("불량 내역이 수정 및 저장되었습니다.");
+                showToast("불량 내역이 대장에 수정 반영되었습니다. [대장 저장]을 눌러주세요.");
             } else {
                 defects.unshift(itemData);
-                showToast("새 불량 내역이 성공적으로 저장되었습니다.");
+                showToast("새 불량 내역이 대장에 추가되었습니다. [대장 저장]을 눌러주세요.");
             }
             
             isModalDirty = false;
-            await saveItemToDB(itemData);
+            // 실시간 자동 저장을 해제하고, 수동 저장 플래그를 활성화
+            markDefectListDirty(1);
             updateYearFilterOptions();
             renderTable();
             closeModal(true);
@@ -2035,10 +2110,10 @@
         async function deleteDefect(id) {
             if (confirm("해당 불량 내역을 정말로 삭제하시겠습니까?")) {
                 defects = defects.filter(d => d.id !== id);
-                await deleteItemFromDB(id);
+                markDefectListDirty(1);
                 updateYearFilterOptions();
                 renderTable();
-                showToast("선택된 내역이 삭제되었습니다.", true);
+                showToast("선택된 내역이 삭제되었습니다. 상단 [대장 저장]을 눌러 최종 저장하세요.", true);
             }
         }
 
