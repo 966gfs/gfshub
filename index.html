@@ -192,82 +192,100 @@
                 </div>
             </div>
 
-            <!-- 검색 및 년/월 필터 툴바 -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 no-print">
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
-                    <!-- 검색 입력창 -->
-                    <div class="relative w-full sm:w-64">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                            <i class="fa-solid fa-search"></i>
-                        </span>
-                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="품목명, 로트, 원인 검색..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
+            <!-- 검색 및 작업 제어 툴바 (직관적인 2단 그룹 레이아웃) -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm no-print overflow-hidden">
+                <!-- 1단: 주요 검색 / 기간 필터 및 핵심 작업 버튼 -->
+                <div class="p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5 bg-white">
+                    <!-- 좌측: 검색창 및 기간 필터 -->
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-grow">
+                        <!-- 검색 입력창 (사이즈 확대 및 세련된 포커스 스타일) -->
+                        <div class="relative w-full sm:w-72 md:w-80">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <input type="text" id="searchInput" oninput="renderTable()" placeholder="품목명, 로트, 불량원인 검색..." class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50/50 hover:bg-white focus:bg-white transition shadow-2xs">
+                        </div>
 
-                    <!-- 년도 선택 필터 -->
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-xs font-semibold text-slate-500 whitespace-nowrap"><i class="fa-regular fa-calendar text-blue-600 mr-1"></i>기간:</span>
-                        <select id="filterYear" onchange="onDateFilterChange()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">전체 연도</option>
-                        </select>
-                        <select id="filterMonth" onchange="onDateFilterChange()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">전체 월</option>
-                            <option value="01">1월</option>
-                            <option value="02">2월</option>
-                            <option value="03">3월</option>
-                            <option value="04">4월</option>
-                            <option value="05">5월</option>
-                            <option value="06">6월</option>
-                            <option value="07">7월</option>
-                            <option value="08">8월</option>
-                            <option value="09">9월</option>
-                            <option value="10">10월</option>
-                            <option value="11">11월</option>
-                            <option value="12">12월</option>
-                        </select>
-                        <button onclick="resetDateFilter()" class="px-2.5 py-2 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-semibold transition" title="기간 필터 초기화">
-                            <i class="fa-solid fa-rotate-right"></i>
+                        <!-- 년도/월 선택 필터 -->
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-xs font-semibold text-slate-500 whitespace-nowrap hidden sm:inline"><i class="fa-regular fa-calendar text-blue-600 mr-1"></i>기간:</span>
+                            <select id="filterYear" onchange="onDateFilterChange()" class="px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer">
+                                <option value="">전체 연도</option>
+                            </select>
+                            <select id="filterMonth" onchange="onDateFilterChange()" class="px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer">
+                                <option value="">전체 월</option>
+                                <option value="01">1월</option>
+                                <option value="02">2월</option>
+                                <option value="03">3월</option>
+                                <option value="04">4월</option>
+                                <option value="05">5월</option>
+                                <option value="06">6월</option>
+                                <option value="07">7월</option>
+                                <option value="08">8월</option>
+                                <option value="09">9월</option>
+                                <option value="10">10월</option>
+                                <option value="11">11월</option>
+                                <option value="12">12월</option>
+                            </select>
+                            <button onclick="resetDateFilter()" class="p-2.5 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-semibold transition" title="필터 초기화">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 우측: 핵심 작업 액션 (저장 상태 + 저장 + 신규 등록) -->
+                    <div class="flex items-center justify-end gap-2 flex-wrap sm:flex-nowrap pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                        <!-- 저장 상태 배지 -->
+                        <div id="defectSaveStatusBadge" class="hidden sm:flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 whitespace-nowrap shadow-2xs">
+                            <span id="defectSaveStatusDot" class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>
+                            <span id="defectSaveStatusText">저장됨</span>
+                        </div>
+
+                        <!-- 수동 저장 버튼 -->
+                        <button id="btnSaveDefects" onclick="commitDefectsToDB()" class="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm active:scale-95 whitespace-nowrap" title="변경된 내역을 DB에 저장합니다.">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span id="btnSaveDefectsText">저장</span>
+                        </button>
+
+                        <!-- 불량 내역 등록 버튼 (Primary CTA) -->
+                        <button onclick="openModal()" class="inline-flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm transition transform active:scale-95 whitespace-nowrap">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>불량 내역 등록</span>
                         </button>
                     </div>
-                    <!-- 대장 수동 저장 상태 배지 -->
-                    <div id="defectSaveStatusBadge" class="hidden sm:flex items-center text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                        <span id="defectSaveStatusDot" class="w-2 h-2 rounded-full bg-slate-400 mr-1.5"></span>
-                        <span id="defectSaveStatusText">저장됨</span>
-                    </div>
                 </div>
-                
-                <!-- 액션 버튼 그룹 -->
-                <div class="flex items-center space-x-2 w-full lg:w-auto justify-end flex-wrap gap-2">
-                    <!-- 대장 변경사항 수동 저장 버튼 -->
-                    <button id="btnSaveDefects" onclick="commitDefectsToDB()" class="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm" title="변경된 대장 내역을 DB에 저장합니다.">
-                        <i class="fa-solid fa-floppy-disk"></i>
-                        <span id="btnSaveDefectsText">대장 저장</span>
-                    </button>
 
-                    <button onclick="backupJSON()" class="inline-flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-semibold transition border border-slate-300" title="데이터 파일 백업 다운로드">
-                        <i class="fa-solid fa-download text-slate-600"></i>
-                        <span>백업 저장</span>
-                    </button>
+                <!-- 2단: 데이터 관리 및 내보내기 유틸리티 도구 바 -->
+                <div class="px-4 py-2.5 bg-slate-50/80 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div class="text-slate-500 font-medium flex items-center gap-1.5">
+                        <i class="fa-solid fa-table-list text-blue-500"></i>
+                        <span>원자재 불량 관리 데이터 도구</span>
+                    </div>
 
-                    <label class="inline-flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-semibold transition border border-slate-300 cursor-pointer" title="백업 파일 불러오기">
-                        <i class="fa-solid fa-upload text-slate-600"></i>
-                        <span>백업 불러오기</span>
-                        <input type="file" accept=".json" onchange="restoreJSON(event)" class="hidden">
-                    </label>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="exportToCSV()" class="inline-flex items-center space-x-1.5 bg-white hover:bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-semibold transition shadow-2xs hover:border-slate-400" title="현재 표의 내역을 엑셀 CSV 파일로 저장">
+                            <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                            <span>엑셀(CSV)</span>
+                        </button>
 
-                    <button onclick="triggerPrint()" class="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition shadow-sm">
-                        <i class="fa-solid fa-print"></i>
-                        <span>보고서 인쇄</span>
-                    </button>
+                        <button onclick="triggerPrint()" class="inline-flex items-center space-x-1.5 bg-white hover:bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-semibold transition shadow-2xs hover:border-slate-400" title="A4 보고서 인쇄 미리보기">
+                            <i class="fa-solid fa-print text-indigo-600"></i>
+                            <span>보고서 인쇄</span>
+                        </button>
 
-                    <button onclick="exportToCSV()" class="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition shadow-sm">
-                        <i class="fa-solid fa-file-excel"></i>
-                        <span>엑셀(CSV)</span>
-                    </button>
+                        <div class="h-3.5 w-px bg-slate-300 mx-1 hidden sm:block"></div>
 
-                    <button onclick="openModal()" class="inline-flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition transform active:scale-95">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>불량 내역 등록</span>
-                    </button>
+                        <button onclick="backupJSON()" class="inline-flex items-center space-x-1.5 bg-white hover:bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition shadow-2xs hover:border-slate-400" title="전체 데이터 백업 파일 다운로드">
+                            <i class="fa-solid fa-download text-slate-500"></i>
+                            <span>백업 저장</span>
+                        </button>
+
+                        <label class="inline-flex items-center space-x-1.5 bg-white hover:bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium transition shadow-2xs hover:border-slate-400 cursor-pointer" title="백업 파일 불러와 복구">
+                            <i class="fa-solid fa-upload text-slate-500"></i>
+                            <span>백업 불러오기</span>
+                            <input type="file" accept=".json" onchange="restoreJSON(event)" class="hidden">
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -483,16 +501,22 @@
                 </div>
 
                 <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="block text-xs font-semibold text-slate-600">품목명</label>
-                        <button type="button" onclick="openSettingsModal('items')" class="text-[11px] text-blue-600 hover:underline flex items-center gap-1">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold text-slate-700">품목명 <span class="text-blue-600">*</span></label>
+                        <button type="button" onclick="openSettingsModal('items')" class="text-[11px] text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1">
                             <i class="fa-solid fa-gear text-[10px]"></i> 품목 목록 관리
                         </button>
                     </div>
-                    <input type="text" id="formItemType" required list="itemSuggestions" oninput="markModalDirty()" placeholder="품목명을 입력하거나 선택하세요" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
+                    <div class="relative">
+                        <input type="text" id="formItemType" required list="itemSuggestions" oninput="markModalDirty()" placeholder="품목명을 검색하거나 직접 입력하세요" class="w-full pl-3.5 pr-9 py-2.5 border-2 border-slate-300 rounded-xl text-base font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition shadow-2xs">
+                        <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                        </span>
+                    </div>
                     <datalist id="itemSuggestions">
                         <!-- 동적으로 자바스크립트에서 채워짐 -->
                     </datalist>
+                    <p class="text-[11px] text-slate-400 mt-1">입력창을 클릭하거나 단어를 입력하면 등록된 품목 목록이 추천됩니다.</p>
                 </div>
 
                 <div class="grid grid-cols-3 gap-3">
@@ -1546,31 +1570,31 @@
             if (!badge || !btn) return;
 
             if (isDefectListDirty) {
-                badge.className = "flex items-center text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-300 shadow-sm animate-pulse";
+                badge.className = "flex items-center text-xs font-bold text-amber-700 bg-amber-50 px-3 py-2 rounded-xl border border-amber-300 shadow-sm animate-pulse whitespace-nowrap";
                 if (dot) dot.className = "w-2 h-2 rounded-full bg-amber-500 mr-1.5";
                 if (text) text.innerText = `미저장 변경 (${pendingDefectCount}건)`;
-                btn.className = "inline-flex items-center space-x-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-md ring-2 ring-amber-400";
-                if (btnText) btnText.innerText = "대장 저장 (필요)";
+                btn.className = "inline-flex items-center space-x-1.5 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-md ring-2 ring-amber-400 whitespace-nowrap";
+                if (btnText) btnText.innerText = "저장 (필요)";
             } else {
-                badge.className = "hidden sm:flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200";
+                badge.className = "hidden sm:flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 whitespace-nowrap shadow-2xs";
                 if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-500 mr-1.5";
-                if (text) text.innerText = "대장 저장 완료";
-                btn.className = "inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm";
-                if (btnText) btnText.innerText = "대장 저장";
+                if (text) text.innerText = "저장 완료";
+                btn.className = "inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm whitespace-nowrap";
+                if (btnText) btnText.innerText = "저장";
             }
         }
 
         async function commitDefectsToDB() {
             try {
-                showToast("원자재 불량 관리 대장 저장 중...");
+                showToast("내역 저장 중...");
                 await saveAllToDB(defects);
                 isDefectListDirty = false;
                 pendingDefectCount = 0;
                 updateDefectDirtyStatus();
-                showToast("원자재 불량 관리 대장이 성공적으로 저장되었습니다!");
+                showToast("성공적으로 저장되었습니다!");
             } catch (err) {
                 console.error("Save defects error:", err);
-                showToast("대장 저장 중 오류 발생: " + err.message, true);
+                showToast("저장 중 오류 발생: " + err.message, true);
             }
         }
 
@@ -2089,10 +2113,10 @@
             if (id) {
                 const idx = defects.findIndex(d => d.id === id);
                 if (idx !== -1) defects[idx] = itemData;
-                showToast("불량 내역이 대장에 수정 반영되었습니다. [대장 저장]을 눌러주세요.");
+                showToast("불량 내역이 수정되었습니다. 상단 [저장]을 눌러주세요.");
             } else {
                 defects.unshift(itemData);
-                showToast("새 불량 내역이 대장에 추가되었습니다. [대장 저장]을 눌러주세요.");
+                showToast("새 불량 내역이 추가되었습니다. 상단 [저장]을 눌러주세요.");
             }
             
             isModalDirty = false;
@@ -2113,7 +2137,7 @@
                 markDefectListDirty(1);
                 updateYearFilterOptions();
                 renderTable();
-                showToast("선택된 내역이 삭제되었습니다. 상단 [대장 저장]을 눌러 최종 저장하세요.", true);
+                showToast("선택된 내역이 삭제되었습니다. 상단 [저장]을 눌러 최종 저장하세요.", true);
             }
         }
 
